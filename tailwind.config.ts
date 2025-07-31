@@ -18,6 +18,9 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				inter: ['Inter', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -54,7 +57,9 @@ export default {
 				},
 				trust: {
 					DEFAULT: 'hsl(var(--trust))',
-					light: 'hsl(var(--trust-light))'
+					light: 'hsl(var(--trust-light))',
+					neutral: 'hsl(var(--neutral-trust))',
+					negative: 'hsl(var(--negative-trust))'
 				},
 				progress: 'hsl(var(--progress))',
 				sidebar: {

@@ -12,7 +12,7 @@ const features = [
     icon: Shield,
     title: "Blockchain Verification",
     description: "Immutable verification records stored on blockchain for complete transparency and tamper-proof results.",
-    color: "text-accent"
+    color: "text-trust"
   },
   {
     icon: Globe,
@@ -30,7 +30,7 @@ const features = [
     icon: CheckCircle,
     title: "Fact Verification",
     description: "Cross-reference claims against multiple authoritative sources for comprehensive fact-checking.",
-    color: "text-accent"
+    color: "text-trust"
   },
   {
     icon: TrendingUp,

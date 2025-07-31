@@ -14,7 +14,7 @@ const steps = [
     icon: Brain,
     title: "AI Analysis",
     description: "Advanced algorithms analyze sentiment, fact-check claims, and assess content credibility in real-time.",
-    color: "text-accent"
+    color: "text-trust"
   },
   {
     step: 3,

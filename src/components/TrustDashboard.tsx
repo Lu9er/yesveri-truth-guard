@@ -20,10 +20,10 @@ export const TrustDashboard = () => {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium flex items-center">
-              <TrendingUp className="w-4 h-4 mr-2 text-accent" />
+              <TrendingUp className="w-4 h-4 mr-2 text-trust" />
               Sentiment Analysis
             </span>
-            <span className="text-sm font-bold text-accent">87%</span>
+            <span className="text-sm font-bold text-trust">87%</span>
           </div>
           <Progress value={87} className="h-2" />
         </div>
@@ -41,12 +41,12 @@ export const TrustDashboard = () => {
         </div>
 
         {/* Blockchain Verification */}
-        <div className="flex items-center justify-between p-3 bg-accent/10 rounded-lg">
+        <div className="flex items-center justify-between p-3 bg-trust/10 rounded-lg">
           <span className="text-sm font-medium flex items-center">
-            <Shield className="w-4 h-4 mr-2 text-accent" />
+            <Shield className="w-4 h-4 mr-2 text-trust" />
             Blockchain Verified
           </span>
-          <div className="flex items-center text-accent">
+          <div className="flex items-center text-trust">
             <CheckCircle className="w-4 h-4 mr-1" />
             <span className="text-sm font-bold">Verified</span>
           </div>
