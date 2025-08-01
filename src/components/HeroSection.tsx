@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { TrustDashboard } from "./TrustDashboard";
 import { ArrowRight, PlayCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export const HeroSection = () => {
   return (
@@ -42,9 +43,11 @@ export const HeroSection = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="text-base font-semibold">
-                Get Started
-                <ArrowRight className="ml-2 w-5 h-5" />
+              <Button size="lg" className="text-base font-semibold" asChild>
+                <Link to="/verify">
+                  Get Started
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Link>
               </Button>
               <Button variant="outline" size="lg" className="text-base font-semibold">
                 <PlayCircle className="mr-2 w-5 h-5" />
