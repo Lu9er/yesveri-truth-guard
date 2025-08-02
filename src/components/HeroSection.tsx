@@ -49,9 +49,11 @@ export const HeroSection = () => {
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" className="text-base font-semibold">
-                <PlayCircle className="mr-2 w-5 h-5" />
-                Learn More
+              <Button variant="outline" size="lg" className="text-base font-semibold" asChild>
+                <Link to="/about">
+                  <PlayCircle className="mr-2 w-5 h-5" />
+                  Learn More
+                </Link>
               </Button>
             </div>
 

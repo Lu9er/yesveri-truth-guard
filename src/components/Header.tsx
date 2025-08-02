@@ -21,9 +21,16 @@ export const Header = () => {
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-              <Info className="w-4 h-4 mr-2" />
-              About
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
+              <Link to="/about">
+                <Info className="w-4 h-4 mr-2" />
+                About
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
+              <Link to="/pricing">
+                Pricing
+              </Link>
             </Button>
             <Button variant="default" size="sm" asChild>
               <Link to="/verify">
@@ -32,12 +39,7 @@ export const Header = () => {
               </Link>
             </Button>
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
-              <Link to="/admin">
-                Admin
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer">
+              <a href="https://github.com/Lu9er/yesveri.online" target="_blank" rel="noopener noreferrer">
                 <Github className="w-4 h-4 mr-2" />
                 GitHub
               </a>

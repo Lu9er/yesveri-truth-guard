@@ -147,7 +147,7 @@ export class SourceVerificationEngine {
   private perplexityBaseUrl = 'https://api.perplexity.ai';
 
   constructor(apiKey?: string) {
-    this.perplexityApiKey = apiKey || '';
+    this.perplexityApiKey = apiKey || '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';
   }
 
   async verifyWithSources(request: SourceVerificationRequest): Promise<SourceVerificationResult> {
