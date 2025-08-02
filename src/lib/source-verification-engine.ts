@@ -51,96 +51,7 @@ export interface ConflictingInfo {
   analysis: string;
 }
 
-// Mock responses for development
-const MOCK_SOURCE_VERIFICATION: SourceVerificationResult = {
-  verificationId: 'verify_' + Date.now(),
-  overallCredibility: 85,
-  sourceCount: 4,
-  verifiedClaims: [
-    {
-      claimText: "Nigeria's economy is growing at 3.5% annually",
-      verdict: 'PARTIALLY_TRUE',
-      confidence: 75,
-      supportingSources: ['https://bbc.com/news/nigeria-economy', 'https://punchng.com/economic-growth'],
-      contradictingSources: [],
-      evidence: 'Multiple sources confirm growth but rates vary between 2.8-3.7%',
-      reasoning: 'Economic data shows growth but exact figures differ across sources'
-    },
-    {
-      claimText: "Lagos is Nigeria's capital city",
-      verdict: 'FALSE',
-      confidence: 100,
-      supportingSources: [],
-      contradictingSources: ['https://gov.ng/about-nigeria', 'https://bbc.com/news/nigeria-facts'],
-      evidence: 'Abuja is the official capital city of Nigeria since 1991',
-      reasoning: 'All official sources confirm Abuja as the current capital'
-    }
-  ],
-  sources: [
-    {
-      url: 'https://bbc.com/news/nigeria-economy',
-      title: 'Nigeria Economic Growth Report 2024',
-      domain: 'bbc.com',
-      credibilityScore: 95,
-      publicationDate: '2024-07-15',
-      relevantQuote: 'Nigeria\'s GDP grew by 3.19% in the second quarter of 2024, showing steady economic progress.',
-      sourceType: 'news',
-      isNigerianSource: false,
-      accessDate: new Date().toISOString().split('T')[0]
-    },
-    {
-      url: 'https://punchng.com/economic-growth',
-      title: 'Nigerian Economy Shows Resilience',
-      domain: 'punchng.com',
-      credibilityScore: 85,
-      publicationDate: '2024-07-20',
-      relevantQuote: 'Economic analysts project continued growth in Nigeria\'s key sectors.',
-      sourceType: 'news',
-      isNigerianSource: true,
-      accessDate: new Date().toISOString().split('T')[0]
-    },
-    {
-      url: 'https://gov.ng/about-nigeria',
-      title: 'Official Nigeria Government Portal',
-      domain: 'gov.ng',
-      credibilityScore: 90,
-      relevantQuote: 'Abuja is the Federal Capital Territory and seat of government.',
-      sourceType: 'government',
-      isNigerianSource: true,
-      accessDate: new Date().toISOString().split('T')[0]
-    },
-    {
-      url: 'https://premiumtimesng.com/news/headlines',
-      title: 'Nigeria Development Updates',
-      domain: 'premiumtimesng.com',
-      credibilityScore: 82,
-      publicationDate: '2024-07-18',
-      relevantQuote: 'Recent infrastructure developments show positive economic indicators.',
-      sourceType: 'news',
-      isNigerianSource: true,
-      accessDate: new Date().toISOString().split('T')[0]
-    }
-  ],
-  conflictingInformation: [
-    {
-      topic: 'Economic Growth Rate',
-      conflictingSources: [
-        {
-          url: 'https://bbc.com/news/nigeria-economy',
-          position: 'Reports 3.19% growth rate'
-        },
-        {
-          url: 'https://worldbank.org/nigeria',
-          position: 'Projects 2.8% growth rate'
-        }
-      ],
-      analysis: 'Different institutions use varying methodologies and time periods for measuring economic growth'
-    }
-  ],
-  summary: 'Content contains mix of verifiable and false claims. Economic data is generally accurate but specific figures vary between sources. Geographic claims require fact-checking.',
-  processingTime: 2150,
-  timestamp: new Date().toISOString()
-};
+// Remove mock data - all verification should use real APIs
 
 export class SourceVerificationEngine {
   private perplexityApiKey: string;
@@ -154,17 +65,6 @@ export class SourceVerificationEngine {
     const startTime = Date.now();
     
     try {
-      // For development, return mock data
-      if (!this.perplexityApiKey || process.env.NODE_ENV === 'development') {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
-        return {
-          ...MOCK_SOURCE_VERIFICATION,
-          verificationId: this.generateVerificationId(),
-          processingTime: Date.now() - startTime,
-          timestamp: new Date().toISOString()
-        };
-      }
-
       // Build specialized prompt for source verification
       const verificationPrompt = this.buildSourceVerificationPrompt(request);
       
@@ -181,16 +81,21 @@ export class SourceVerificationEngine {
         verifiedClaims: result.verifiedClaims || [],
         sources: result.sources || [],
         conflictingInformation: result.conflictingInformation || [],
-        summary: result.summary || 'Verification completed',
+        summary: result.summary || 'No sources found for verification',
         processingTime: Date.now() - startTime,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
       console.error('Source verification failed:', error);
-      // Return mock data as fallback
+      // Return empty result instead of mock data
       return {
-        ...MOCK_SOURCE_VERIFICATION,
         verificationId: this.generateVerificationId(),
+        overallCredibility: 0,
+        sourceCount: 0,
+        verifiedClaims: [],
+        sources: [],
+        conflictingInformation: [],
+        summary: `Source verification failed: ${error.message}. No sources available for this content.`,
         processingTime: Date.now() - startTime,
         timestamp: new Date().toISOString()
       };

@@ -128,27 +128,30 @@ export class VerificationEngine {
       // Process content
       const processedContent = await this.preprocessContent(input);
       
-      // Run parallel mock verifications
+      // Run source verification first to get actual sources
+      const sourceVerificationResult = await this.performSourceVerification(input);
+      
+      // Run other verifications in parallel
       const [
         sentimentResult,
         factCheckResult,
-        sourceCredibilityResult,
-        contentClassification,
-        sourceVerificationResult
+        contentClassification
       ] = await Promise.all([
         this.analyzeSentiment(processedContent),
         this.performFactCheck(processedContent),
-        this.assessSourceCredibility(processedContent),
-        this.classifyContent(processedContent),
-        this.performSourceVerification(input)
+        this.classifyContent(processedContent)
       ]);
+
+      // Assess source credibility based on actual sources from verification
+      const sourceCredibilityResult = this.buildSourceCredibilityFromVerification(sourceVerificationResult);
 
       // Calculate trust score
       const trustScore = this.calculateTrustScore({
         sentiment: sentimentResult,
         factCheck: factCheckResult,
         sourceCredibility: sourceCredibilityResult,
-        classification: contentClassification
+        classification: contentClassification,
+        sourceVerification: sourceVerificationResult
       });
 
       // Generate blockchain hash
@@ -330,11 +333,43 @@ export class VerificationEngine {
     }
   }
 
-  private async assessSourceCredibility(content: string): Promise<SourceCredibilityResult> {
-    const scores = [88, 72, 95, 64, 81];
+  private buildSourceCredibilityFromVerification(sourceVerification: SourceVerificationResult): SourceCredibilityResult {
+    if (!sourceVerification || sourceVerification.sources.length === 0) {
+      return {
+        score: 0,
+        domains: [],
+        summary: "No sources available for credibility assessment"
+      };
+    }
+
+    // Build domains array from actual sources
+    const domains = sourceVerification.sources.map(source => ({
+      domain: source.domain,
+      credibility: source.credibilityScore,
+      type: source.sourceType as 'news' | 'academic' | 'government' | 'social' | 'unknown'
+    }));
+
+    // Calculate average credibility score
+    const avgScore = domains.length > 0 
+      ? Math.round(domains.reduce((sum, d) => sum + d.credibility, 0) / domains.length)
+      : 0;
+
+    const sourceTypes = [...new Set(domains.map(d => d.type))];
+    const highCredSources = domains.filter(d => d.credibility >= 80).length;
+
     return {
-      ...MOCK_RESPONSES.sourceCredibility,
-      score: scores[Math.floor(Math.random() * scores.length)]
+      score: avgScore,
+      domains,
+      summary: `Analyzed ${domains.length} source(s). ${highCredSources} high-credibility sources found. Source types: ${sourceTypes.join(', ')}.`
+    };
+  }
+
+  private async assessSourceCredibility(content: string): Promise<SourceCredibilityResult> {
+    // This method is deprecated - source credibility is now built from actual verification sources
+    return {
+      score: 0,
+      domains: [],
+      summary: "Source credibility assessment requires actual verification sources"
     };
   }
 
@@ -360,19 +395,23 @@ export class VerificationEngine {
     factCheck: FactCheckResult;
     sourceCredibility: SourceCredibilityResult;
     classification: ContentClassification;
+    sourceVerification: SourceVerificationResult;
   }): number {
-    // Weighted calculation
+    // Weighted calculation with source verification being most important
     const weights = {
-      factCheck: 0.4,
-      sourceCredibility: 0.3,
-      sentiment: 0.2,
-      classification: 0.1
+      sourceVerification: 0.4,
+      factCheck: 0.3,
+      sourceCredibility: 0.2,
+      sentiment: 0.05,
+      classification: 0.05
     };
 
     const sentimentScore = data.sentiment.score;
     const classificationScore = data.classification.confidence;
+    const sourceVerificationScore = data.sourceVerification?.overallCredibility || 0;
 
     const weighted = (
+      sourceVerificationScore * weights.sourceVerification +
       data.factCheck.score * weights.factCheck +
       data.sourceCredibility.score * weights.sourceCredibility +
       sentimentScore * weights.sentiment +
