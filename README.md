@@ -170,7 +170,3 @@ This project is developed using Lovable platform. Please refer to your Lovable s
 - Real-time collaboration features
 - Mobile application
 - Browser extension
-
----
-
-Built with ❤️ using [Lovable](https://lovable.dev) - The AI-powered web development platform
