@@ -192,28 +192,91 @@ export class VerificationEngine {
 
   private async extractContentFromUrl(url: string): Promise<string> {
     try {
-      // Note: Puppeteer cannot run in browser environment
-      // This would need to be implemented as a backend service or Supabase Edge Function
+      console.log('🔍 Extracting content from URL:', url);
       
-      // Fallback: Use a web scraping service API or extract basic content
-      const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+      // Validate and normalize URL
+      const normalizedUrl = this.normalizeUrl(url);
+      console.log('🔗 Normalized URL:', normalizedUrl);
+      
+      // Use OpenAI to extract and clean content
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a web content extractor. Extract the main article content from the given URL, removing ads, navigation, and irrelevant content. Return only the clean article text, preserving the URL source information.'
+            },
+            {
+              role: 'user',
+              content: `Extract the main content from this URL: ${normalizedUrl}\n\nReturn the clean article text with the source URL preserved.`
+            }
+          ],
+          max_tokens: 2000,
+          temperature: 0.1
+        })
+      });
+
       if (!response.ok) {
-        throw new Error('Failed to fetch URL content');
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const extractedContent = data.choices[0]?.message?.content;
+      
+      if (extractedContent) {
+        // Preserve the original URL for source credibility assessment
+        const contentWithSource = `${extractedContent}\n\nSource: ${normalizedUrl}`;
+        console.log('✅ Content extracted successfully, length:', contentWithSource.length);
+        return contentWithSource.substring(0, 3000); // Limit for token optimization
       }
       
-      const data = await response.json();
-      const content = data.contents;
-      
-      // Basic text extraction (remove HTML tags)
-      const textContent = content.replace(/<[^>]*>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .substring(0, 3000); // Limit for token optimization
-      
-      return textContent || `Content extracted from ${url}`;
+      throw new Error('No content extracted from OpenAI');
     } catch (error) {
       console.error('URL extraction error:', error);
-      return `Failed to extract content from ${url}. Please provide the text directly.`;
+      
+      // Fallback to simple scraping service
+      try {
+        const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+        if (!response.ok) throw new Error('Fallback scraping failed');
+        
+        const data = await response.json();
+        const content = data.contents;
+        
+        // Basic text extraction (remove HTML tags)
+        const textContent = content.replace(/<[^>]*>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        // Preserve URL for source credibility
+        const contentWithSource = `${textContent}\n\nSource: ${url}`;
+        return contentWithSource.substring(0, 3000);
+      } catch (fallbackError) {
+        console.error('Fallback extraction failed:', fallbackError);
+        return `Content from ${url} - Unable to extract full content. Please provide the text directly.`;
+      }
+    }
+  }
+
+  private normalizeUrl(url: string): string {
+    try {
+      // Add protocol if missing
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+      
+      // Create URL object to validate and normalize
+      const urlObj = new URL(url);
+      return urlObj.href;
+    } catch (error) {
+      console.error('URL normalization error:', error);
+      // Return original if normalization fails
+      return url.startsWith('http') ? url : 'https://' + url;
     }
   }
 
@@ -361,7 +424,28 @@ export class VerificationEngine {
   }
 
   private buildSourceCredibilityFromVerification(sourceVerification: SourceVerificationResult): SourceCredibilityResult {
-    if (!sourceVerification || sourceVerification.sources.length === 0) {
+    // Check for URL content that needs domain credibility assessment
+    if (sourceVerification.sources.length === 0) {
+      // Try to extract domain from content for URL-based verification
+      const contentPreview = sourceVerification.summary || '';
+      const urlMatch = contentPreview.match(/Source:\s*(https?:\/\/[^\s]+)/);
+      
+      if (urlMatch) {
+        const url = urlMatch[1];
+        const domain = this.extractDomainFromUrl(url);
+        const domainCredibility = this.assessDomainCredibility(domain);
+        
+        return {
+          score: domainCredibility.score,
+          domains: [{
+            domain: domain,
+            credibility: domainCredibility.score,
+            type: domainCredibility.type
+          }],
+          summary: `Assessed domain credibility for ${domain}: ${domainCredibility.explanation}`
+        };
+      }
+      
       return {
         score: 0,
         domains: [],
@@ -389,6 +473,78 @@ export class VerificationEngine {
       domains,
       summary: `Analyzed ${domains.length} source(s). ${highCredSources} high-credibility sources found. Source types: ${sourceTypes.join(', ')}.`
     };
+  }
+
+  private extractDomainFromUrl(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname.replace('www.', '');
+    } catch (error) {
+      console.error('Error extracting domain:', error);
+      return url;
+    }
+  }
+
+  private assessDomainCredibility(domain: string): { score: number; type: 'news' | 'academic' | 'government' | 'social' | 'unknown'; explanation: string } {
+    // Domain authority database
+    const domainCredibility: Record<string, { score: number; type: 'news' | 'academic' | 'government' | 'social' | 'unknown'; explanation: string }> = {
+      // International news
+      'bbc.com': { score: 95, type: 'news', explanation: 'BBC - Highly credible international news source' },
+      'reuters.com': { score: 95, type: 'news', explanation: 'Reuters - Premium international news agency' },
+      'cnn.com': { score: 85, type: 'news', explanation: 'CNN - Major international news network' },
+      'aljazeera.com': { score: 85, type: 'news', explanation: 'Al Jazeera - Respected international news' },
+      
+      // African news sources
+      'monitor.co.ug': { score: 75, type: 'news', explanation: 'The Monitor - Established Ugandan newspaper' },
+      'newvision.co.ug': { score: 70, type: 'news', explanation: 'New Vision - Ugandan national newspaper' },
+      'dailymonitor.co.ug': { score: 75, type: 'news', explanation: 'Daily Monitor - Reputable Ugandan news source' },
+      'punchng.com': { score: 70, type: 'news', explanation: 'Punch Nigeria - Established Nigerian newspaper' },
+      'vanguardngr.com': { score: 70, type: 'news', explanation: 'Vanguard Nigeria - Nigerian news source' },
+      'premiumtimesng.com': { score: 80, type: 'news', explanation: 'Premium Times - Credible Nigerian investigative journalism' },
+      
+      // Government sources
+      'who.int': { score: 90, type: 'government', explanation: 'World Health Organization - Official health authority' },
+      'un.org': { score: 90, type: 'government', explanation: 'United Nations - International organization' },
+      'gov.ng': { score: 85, type: 'government', explanation: 'Nigerian government official website' },
+      'go.ug': { score: 85, type: 'government', explanation: 'Ugandan government official website' },
+      
+      // Academic sources
+      'ncbi.nlm.nih.gov': { score: 95, type: 'academic', explanation: 'NCBI - National biomedical research database' },
+      'pubmed.ncbi.nlm.nih.gov': { score: 95, type: 'academic', explanation: 'PubMed - Medical research database' },
+      'nature.com': { score: 95, type: 'academic', explanation: 'Nature - Premier scientific journal' },
+      'science.org': { score: 95, type: 'academic', explanation: 'Science Magazine - Top scientific publication' },
+      
+      // Social media (lower credibility)
+      'twitter.com': { score: 30, type: 'social', explanation: 'Twitter/X - Social media platform, unverified content' },
+      'x.com': { score: 30, type: 'social', explanation: 'X (Twitter) - Social media platform, unverified content' },
+      'facebook.com': { score: 25, type: 'social', explanation: 'Facebook - Social media platform, unverified content' },
+      'instagram.com': { score: 25, type: 'social', explanation: 'Instagram - Social media platform, unverified content' }
+    };
+
+    const lowerDomain = domain.toLowerCase();
+    
+    // Check exact match first
+    if (domainCredibility[lowerDomain]) {
+      return domainCredibility[lowerDomain];
+    }
+    
+    // Check for government domains
+    if (lowerDomain.endsWith('.gov') || lowerDomain.endsWith('.gov.ng') || lowerDomain.endsWith('.go.ug')) {
+      return { score: 80, type: 'government', explanation: 'Government domain - generally credible official source' };
+    }
+    
+    // Check for academic domains
+    if (lowerDomain.endsWith('.edu') || lowerDomain.endsWith('.ac.ug') || lowerDomain.endsWith('.edu.ng')) {
+      return { score: 85, type: 'academic', explanation: 'Academic institution - generally credible educational source' };
+    }
+    
+    // Check for established news patterns
+    if (lowerDomain.includes('news') || lowerDomain.includes('times') || lowerDomain.includes('post') || lowerDomain.includes('guardian')) {
+      return { score: 60, type: 'news', explanation: 'Appears to be news outlet - moderate credibility pending verification' };
+    }
+    
+    // Default for unknown domains
+    return { score: 40, type: 'unknown', explanation: `Unknown domain ${domain} - credibility cannot be determined` };
   }
 
   private async assessSourceCredibility(content: string): Promise<SourceCredibilityResult> {
@@ -504,7 +660,8 @@ export class VerificationEngine {
       sentimentScore: data.sentiment.score,
       classificationScore: data.classification.confidence,
       hasConflicts: data.sourceVerification?.conflictingInformation?.length > 0,
-      sourcesFound: data.sourceVerification?.sources?.length || 0
+      sourcesFound: data.sourceVerification?.sources?.length || 0,
+      contentType: data.classification.type
     });
 
     // If content failed basic sanity checks, cap trust score very low
@@ -518,24 +675,59 @@ export class VerificationEngine {
       }
     }
 
-    // Heavy penalty for no sources on factual content
     const sourceVerificationScore = data.sourceVerification?.overallCredibility || 0;
     const hasNoSources = (data.sourceVerification?.sources?.length || 0) === 0;
     const isFactualContent = data.classification.type === 'factual';
+    const isNewsContent = data.sourceCredibility.domains.some(d => d.type === 'news');
     
-    if (hasNoSources && isFactualContent) {
-      console.log('⚠️ No sources found for factual content - applying heavy penalty');
-      // For factual claims with no sources, trust score should be very low
-      return Math.max(5, Math.min(25, sourceVerificationScore));
+    // Special handling for news content from established outlets
+    if (isNewsContent && data.sourceCredibility.score > 60) {
+      console.log('📰 News content from established outlet detected');
+      
+      // For news from credible sources, use source credibility as baseline
+      const newsBaseScore = Math.max(data.sourceCredibility.score, 60);
+      
+      // Apply modifiers based on other factors
+      let modifier = 1.0;
+      
+      // Positive sentiment typically indicates less bias
+      if (data.sentiment.score > 70) modifier += 0.1;
+      else if (data.sentiment.score < 30) modifier -= 0.1;
+      
+      // Recent news may not have extensive fact-checking yet
+      if (data.factCheck.verified) modifier += 0.1;
+      
+      // Check for conflicts
+      if (data.sourceVerification?.conflictingInformation?.length > 0) {
+        modifier -= 0.2;
+      }
+      
+      const finalScore = Math.round(Math.min(95, newsBaseScore * modifier));
+      console.log('📰 News content final score:', finalScore);
+      return finalScore;
     }
 
-    // Weighted calculation with source verification being most important
-    const weights = {
-      sourceVerification: 0.5, // Increased weight
-      factCheck: 0.25,
-      sourceCredibility: 0.15,
+    // Heavy penalty for no sources on factual content (non-news)
+    if (hasNoSources && isFactualContent && !isNewsContent) {
+      console.log('⚠️ No sources found for factual content - applying heavy penalty');
+      // Base score from domain credibility if available
+      const baseScore = data.sourceCredibility.score > 0 ? data.sourceCredibility.score : 15;
+      return Math.max(5, Math.min(30, baseScore));
+    }
+
+    // Standard weighted calculation
+    const weights = isFactualContent ? {
+      sourceVerification: 0.4,
+      sourceCredibility: 0.3, // Higher weight for source credibility
+      factCheck: 0.2,
       sentiment: 0.05,
       classification: 0.05
+    } : {
+      sourceVerification: 0.3,
+      sourceCredibility: 0.2,
+      factCheck: 0.3,
+      sentiment: 0.1,
+      classification: 0.1
     };
 
     const sentimentScore = data.sentiment.score;
@@ -543,15 +735,28 @@ export class VerificationEngine {
 
     const weighted = (
       sourceVerificationScore * weights.sourceVerification +
-      data.factCheck.score * weights.factCheck +
       data.sourceCredibility.score * weights.sourceCredibility +
+      data.factCheck.score * weights.factCheck +
       sentimentScore * weights.sentiment +
       classificationScore * weights.classification
     );
 
+    // Ensure consistency between confidence and credibility
     const finalScore = Math.round(weighted);
-    console.log('✅ Final trust score calculated:', finalScore);
-    return finalScore;
+    
+    console.log('✅ Final trust score calculated:', {
+      finalScore,
+      weights,
+      components: {
+        sourceVerification: sourceVerificationScore,
+        sourceCredibility: data.sourceCredibility.score,
+        factCheck: data.factCheck.score,
+        sentiment: sentimentScore,
+        classification: classificationScore
+      }
+    });
+    
+    return Math.max(5, Math.min(95, finalScore));
   }
 
   private async generateBlockchainHash(content: string, trustScore: number): Promise<BlockchainResult> {
