@@ -22,7 +22,7 @@ export default function SourceVerificationResults({ verification }: SourceVerifi
         </div>
         <div className="text-muted-foreground">Source-Verified Credibility</div>
         <div className="text-sm text-muted-foreground mt-1">
-          Based on {verification.sourceCount} sources • {verification.processingTime}ms
+          Based on {verification.sources.length} sources • Confidence: {verification.confidence}%
         </div>
       </div>
 
@@ -36,7 +36,7 @@ export default function SourceVerificationResults({ verification }: SourceVerifi
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          Verified Claims ({verification.verifiedClaims.length})
+          Verified Claims ({verification.claimsVerified.length})
         </button>
         <button
           onClick={() => setActiveTab('sources')}
@@ -63,7 +63,7 @@ export default function SourceVerificationResults({ verification }: SourceVerifi
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'claims' && <ClaimsTab claims={verification.verifiedClaims} />}
+      {activeTab === 'claims' && <ClaimsTab claims={verification.claimsVerified} />}
       {activeTab === 'sources' && <SourcesTab sources={verification.sources} />}
       {activeTab === 'conflicts' && <ConflictsTab conflicts={verification.conflictingInformation} />}
 
@@ -83,13 +83,13 @@ function ClaimsTab({ claims }: { claims: VerifiedClaim[] }) {
         <div key={index} className="border rounded-lg p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
-              <p className="font-medium text-foreground">{claim.claimText}</p>
+              <p className="font-medium text-foreground">{claim.claim}</p>
               <p className="text-sm text-muted-foreground mt-1">{claim.evidence}</p>
             </div>
             <div className="ml-4 flex items-center space-x-2">
-              <VerdictIcon verdict={claim.verdict} />
-              <span className={`text-sm font-medium ${getVerdictColor(claim.verdict)}`}>
-                {claim.verdict}
+              <VerdictIcon verdict={claim.verificationStatus} />
+              <span className={`text-sm font-medium ${getVerdictColor(claim.verificationStatus)}`}>
+                {claim.verificationStatus}
               </span>
             </div>
           </div>
@@ -97,14 +97,9 @@ function ClaimsTab({ claims }: { claims: VerifiedClaim[] }) {
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Confidence: {claim.confidence}%</span>
             <div className="flex space-x-4">
-              {claim.supportingSources.length > 0 && (
+              {claim.sources.length > 0 && (
                 <span className="text-positive">
-                  {claim.supportingSources.length} supporting
-                </span>
-              )}
-              {claim.contradictingSources.length > 0 && (
-                <span className="text-destructive">
-                  {claim.contradictingSources.length} contradicting
+                  {claim.sources.length} sources
                 </span>
               )}
             </div>
@@ -177,19 +172,20 @@ function ConflictsTab({ conflicts }: { conflicts: ConflictingInfo[] }) {
         <div key={index} className="border border-warning/20 rounded-lg p-4 bg-warning/5">
           <h4 className="font-semibold text-warning mb-2 flex items-center">
             <AlertCircle className="w-5 h-5 mr-2" />
-            Conflicting Information: {conflict.topic}
+            Conflicting Information: {conflict.claim}
           </h4>
           
           <div className="space-y-3 mb-3">
-            {conflict.conflictingSources.map((source, idx) => (
+            {conflict.conflictingClaims.map((claim, idx) => (
               <div key={idx} className="bg-background p-3 rounded border-l-4 border-warning">
-                <div className="font-medium text-sm">{source.url}</div>
-                <div className="text-foreground">{source.position}</div>
+                <div className="text-foreground">{claim}</div>
               </div>
             ))}
           </div>
           
-          <p className="text-sm text-muted-foreground">{conflict.analysis}</p>
+          <div className="text-sm text-muted-foreground">
+            Sources: {conflict.sources.join(', ')}
+          </div>
         </div>
       ))}
     </div>

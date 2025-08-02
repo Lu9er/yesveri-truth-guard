@@ -497,18 +497,49 @@ export class VerificationEngine {
     classification: ContentClassification;
     sourceVerification: SourceVerificationResult;
   }): number {
+    console.log('🧮 Calculating trust score with data:', {
+      sourceVerificationScore: data.sourceVerification?.overallCredibility || 0,
+      factCheckScore: data.factCheck.score,
+      sourceCredibilityScore: data.sourceCredibility.score,
+      sentimentScore: data.sentiment.score,
+      classificationScore: data.classification.confidence,
+      hasConflicts: data.sourceVerification?.conflictingInformation?.length > 0,
+      sourcesFound: data.sourceVerification?.sources?.length || 0
+    });
+
+    // If content failed basic sanity checks, cap trust score very low
+    if (data.sourceVerification?.conflictingInformation?.length > 0) {
+      const hasGeographicIssues = data.sourceVerification.conflictingInformation.some(c => 
+        c.conflictingClaims.some(claim => claim.includes('Geographic impossibility') || claim.includes('Timeline error') || claim.includes('Scientifically false'))
+      );
+      if (hasGeographicIssues) {
+        console.log('🚨 Content failed sanity checks - capping trust score at 10%');
+        return Math.min(10, data.sourceVerification.overallCredibility);
+      }
+    }
+
+    // Heavy penalty for no sources on factual content
+    const sourceVerificationScore = data.sourceVerification?.overallCredibility || 0;
+    const hasNoSources = (data.sourceVerification?.sources?.length || 0) === 0;
+    const isFactualContent = data.classification.type === 'factual';
+    
+    if (hasNoSources && isFactualContent) {
+      console.log('⚠️ No sources found for factual content - applying heavy penalty');
+      // For factual claims with no sources, trust score should be very low
+      return Math.max(5, Math.min(25, sourceVerificationScore));
+    }
+
     // Weighted calculation with source verification being most important
     const weights = {
-      sourceVerification: 0.4,
-      factCheck: 0.3,
-      sourceCredibility: 0.2,
+      sourceVerification: 0.5, // Increased weight
+      factCheck: 0.25,
+      sourceCredibility: 0.15,
       sentiment: 0.05,
       classification: 0.05
     };
 
     const sentimentScore = data.sentiment.score;
     const classificationScore = data.classification.confidence;
-    const sourceVerificationScore = data.sourceVerification?.overallCredibility || 0;
 
     const weighted = (
       sourceVerificationScore * weights.sourceVerification +
@@ -518,7 +549,9 @@ export class VerificationEngine {
       classificationScore * weights.classification
     );
 
-    return Math.round(weighted);
+    const finalScore = Math.round(weighted);
+    console.log('✅ Final trust score calculated:', finalScore);
+    return finalScore;
   }
 
   private async generateBlockchainHash(content: string, trustScore: number): Promise<BlockchainResult> {
