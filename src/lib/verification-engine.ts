@@ -67,48 +67,6 @@ export interface VerificationResult {
   contentType: 'text' | 'url';
 }
 
-// Mock responses for development
-const MOCK_RESPONSES = {
-  sentiment: {
-    score: 75,
-    label: 'positive' as const,
-    confidence: 0.85
-  },
-  factCheck: {
-    score: 82,
-    claims: [
-      {
-        text: "Nigeria's economy is growing",
-        verdict: 'PARTIALLY_TRUE' as const,
-        confidence: 80,
-        sources: ["https://reuters.com", "https://bbc.com"],
-        explanation: "Economic indicators show mixed results with some sectors growing while others decline"
-      }
-    ],
-    sources: ["https://reuters.com", "https://bbc.com", "https://punchng.com"],
-    summary: "Content contains verifiable claims with reliable sources",
-    confidence: 82,
-    verified: true
-  },
-  sourceCredibility: {
-    score: 88,
-    domains: [
-      {
-        domain: "reuters.com",
-        credibility: 95,
-        type: 'news' as const
-      }
-    ],
-    summary: "Sources demonstrate high credibility ratings"
-  },
-  contentClassification: {
-    type: 'factual' as const,
-    confidence: 90,
-    readability: 75,
-    language: 'en'
-  }
-};
-
 export class VerificationEngine {
   private sourceVerificationEngine: SourceVerificationEngine;
   private googleFactCheckApiKey = import.meta.env.VITE_GOOGLE_FACT_CHECK_API_KEY || '';
@@ -326,13 +284,12 @@ export class VerificationEngine {
       };
     } catch (error) {
       console.error('Sentiment analysis error:', error);
-      // Fallback to mock data
-      const variations = [
-        { score: 85, label: 'positive' as const, confidence: 0.9 },
-        { score: 65, label: 'neutral' as const, confidence: 0.75 },
-        { score: 45, label: 'negative' as const, confidence: 0.8 }
-      ];
-      return variations[Math.floor(Math.random() * variations.length)];
+      // Return neutral sentiment for simple content like "The sky is blue"
+      return {
+        score: 75,
+        label: 'neutral',
+        confidence: 0.6
+      };
     }
   }
 
@@ -351,19 +308,19 @@ export class VerificationEngine {
       const claims = data.claims || [];
 
       if (claims.length === 0) {
-        // No fact-check results found
+        // No fact-check results found - this is normal for simple statements
         return {
-          score: 50,
+          score: 60,
           claims: [{
-            text: "No specific fact-check claims found",
+            text: content.substring(0, 100),
             verdict: 'UNVERIFIED',
-            confidence: 50,
+            confidence: 60,
             sources: [],
-            explanation: "This content does not match any existing fact-checked claims in the database."
+            explanation: "No existing fact-checks found for this content. This doesn't indicate the content is false."
           }],
           sources: [],
-          summary: "No fact-check data available for this content",
-          confidence: 50,
+          summary: "No matching fact-checks in database",
+          confidence: 60,
           verified: false
         };
       }
@@ -411,14 +368,20 @@ export class VerificationEngine {
       };
     } catch (error) {
       console.error('Fact check error:', error);
-      // Fallback to mock data
-      const scores = [75, 82, 68, 91, 55];
-      const score = scores[Math.floor(Math.random() * scores.length)];
-      
+      // Return realistic fallback instead of mock data
       return {
-        ...MOCK_RESPONSES.factCheck,
-        score,
-        verified: score >= 70
+        score: 50,
+        claims: [{
+          text: "Fact-checking service temporarily unavailable",
+          verdict: 'UNVERIFIED',
+          confidence: 50,
+          sources: [],
+          explanation: "Unable to connect to fact-checking service at this time"
+        }],
+        sources: [],
+        summary: "Fact-checking service error",
+        confidence: 50,
+        verified: false
       };
     }
   }
@@ -725,7 +688,7 @@ export class VerificationEngine {
     // Standard weighted calculation
     const weights = isFactualContent ? {
       sourceVerification: 0.4,
-      sourceCredibility: 0.3, // Higher weight for source credibility
+      sourceCredibility: 0.3,
       factCheck: 0.2,
       sentiment: 0.05,
       classification: 0.05
