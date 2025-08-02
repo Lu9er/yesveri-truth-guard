@@ -111,9 +111,9 @@ const MOCK_RESPONSES = {
 
 export class VerificationEngine {
   private sourceVerificationEngine: SourceVerificationEngine;
-  private googleFactCheckApiKey = 'AIzaSyAWKPf61om8_O7H-io2xYB6KmSHx9S1kPg';
-  private perspectiveApiKey = 'AIzaSyAmATLIbsDPH-HCxE4ifSJoyMv6vTadITA';
-  private openaiApiKey = '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';
+  private googleFactCheckApiKey = import.meta.env.VITE_GOOGLE_FACT_CHECK_API_KEY || '';
+  private perspectiveApiKey = import.meta.env.VITE_PERSPECTIVE_API_KEY || '';
+  private openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
 
   constructor() {
     this.sourceVerificationEngine = new SourceVerificationEngine();
@@ -707,12 +707,19 @@ export class VerificationEngine {
       return finalScore;
     }
 
-    // Heavy penalty for no sources on factual content (non-news)
+    // Handle common knowledge vs complex factual claims
     if (hasNoSources && isFactualContent && !isNewsContent) {
-      console.log('⚠️ No sources found for factual content - applying heavy penalty');
-      // Base score from domain credibility if available
-      const baseScore = data.sourceCredibility.score > 0 ? data.sourceCredibility.score : 15;
-      return Math.max(5, Math.min(30, baseScore));
+      const contentLength = data.sourceVerification?.summary?.length || 0;
+      const isSimpleStatement = contentLength < 100 && data.classification.confidence > 85;
+      
+      if (isSimpleStatement) {
+        console.log('✅ Simple factual statement - using high base score');
+        return Math.max(75, data.classification.confidence);
+      } else {
+        console.log('⚠️ Complex factual content needs sources - applying penalty');
+        const baseScore = data.sourceCredibility.score > 0 ? data.sourceCredibility.score : 15;
+        return Math.max(5, Math.min(30, baseScore));
+      }
     }
 
     // Standard weighted calculation
