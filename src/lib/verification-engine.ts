@@ -1,4 +1,5 @@
 import { generateId } from './utils';
+import { SourceVerificationEngine, SourceVerificationResult } from './source-verification-engine';
 
 // Core interfaces
 export interface VerificationInput {
@@ -59,6 +60,7 @@ export interface VerificationResult {
   sourceCredibility: SourceCredibilityResult;
   contentClassification: ContentClassification;
   blockchain: BlockchainResult;
+  sourceVerification?: SourceVerificationResult;
   processingTime: number;
   timestamp: string;
   content_preview: string;
@@ -108,6 +110,12 @@ const MOCK_RESPONSES = {
 };
 
 export class VerificationEngine {
+  private sourceVerificationEngine: SourceVerificationEngine;
+
+  constructor() {
+    this.sourceVerificationEngine = new SourceVerificationEngine();
+  }
+
   async verify(input: VerificationInput): Promise<VerificationResult> {
     const startTime = Date.now();
     
@@ -123,12 +131,14 @@ export class VerificationEngine {
         sentimentResult,
         factCheckResult,
         sourceCredibilityResult,
-        contentClassification
+        contentClassification,
+        sourceVerificationResult
       ] = await Promise.all([
         this.analyzeSentiment(processedContent),
         this.performFactCheck(processedContent),
         this.assessSourceCredibility(processedContent),
-        this.classifyContent(processedContent)
+        this.classifyContent(processedContent),
+        this.performSourceVerification(input)
       ]);
 
       // Calculate trust score
@@ -150,6 +160,7 @@ export class VerificationEngine {
         sourceCredibility: sourceCredibilityResult,
         contentClassification: contentClassification,
         blockchain: blockchainResult,
+        sourceVerification: sourceVerificationResult,
         processingTime: Date.now() - startTime,
         timestamp: new Date().toISOString(),
         content_preview: input.content.substring(0, 100) + (input.content.length > 100 ? '...' : ''),
@@ -209,6 +220,15 @@ export class VerificationEngine {
       ...MOCK_RESPONSES.contentClassification,
       type: types[Math.floor(Math.random() * types.length)]
     };
+  }
+
+  private async performSourceVerification(input: VerificationInput): Promise<SourceVerificationResult> {
+    return this.sourceVerificationEngine.verifyWithSources({
+      content: input.content,
+      contentType: input.contentType,
+      focusRegion: 'nigeria',
+      sourceTypes: ['news', 'government', 'academic']
+    });
   }
 
   private calculateTrustScore(data: {

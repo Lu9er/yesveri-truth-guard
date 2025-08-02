@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { VerificationEngine, VerificationResult, VerificationInput } from '@/lib/verification-engine';
-import { CheckCircle, Shield, TrendingUp, Clock, FileText, Link, AlertCircle } from 'lucide-react';
+import { CheckCircle, Shield, TrendingUp, Clock, FileText, Link, AlertCircle, Search } from 'lucide-react';
+import SourceVerificationResults from '@/components/SourceVerificationResults';
 
 export default function Verify() {
   const [input, setInput] = useState<VerificationInput>({ content: '', contentType: 'text' });
@@ -183,89 +184,236 @@ export default function Verify() {
                     </CardContent>
                   </Card>
 
-                  {/* Detailed Analysis */}
+                  {/* Detailed Analysis Tabs */}
                   <Card>
                     <CardHeader>
                       <CardTitle>Detailed Analysis</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Sentiment Analysis */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium flex items-center">
-                            <TrendingUp className="w-4 h-4 mr-2 text-blue-600" />
-                            Sentiment Analysis
-                          </span>
-                          <span className="text-sm font-bold">{result.sentimentAnalysis.score}%</span>
-                        </div>
-                        <Progress value={result.sentimentAnalysis.score} className="h-2" />
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">
-                            {result.sentimentAnalysis.label}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {Math.round(result.sentimentAnalysis.confidence * 100)}% confidence
-                          </span>
-                        </div>
-                      </div>
+                    <CardContent>
+                      <Tabs defaultValue="overview" className="w-full">
+                        <TabsList className="grid w-full grid-cols-5">
+                          <TabsTrigger value="overview">Overview</TabsTrigger>
+                          <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
+                          <TabsTrigger value="factcheck">Fact Check</TabsTrigger>
+                          <TabsTrigger value="sources">Sources</TabsTrigger>
+                          <TabsTrigger value="verification">Source Verification</TabsTrigger>
+                        </TabsList>
 
-                      {/* Fact Check Score */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium flex items-center">
-                            <CheckCircle className="w-4 h-4 mr-2 text-primary" />
-                            Fact Check Score
-                          </span>
-                          <span className="text-sm font-bold text-primary">{result.factCheck.score}%</span>
-                        </div>
-                        <Progress value={result.factCheck.score} className="h-2" />
-                        <div className="text-xs text-muted-foreground">
-                          {result.factCheck.summary}
-                        </div>
-                      </div>
-
-                      {/* Source Credibility */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium flex items-center">
-                            <Link className="w-4 h-4 mr-2 text-green-600" />
-                            Source Credibility
-                          </span>
-                          <span className="text-sm font-bold text-green-600">{result.sourceCredibility.score}%</span>
-                        </div>
-                        <Progress value={result.sourceCredibility.score} className="h-2" />
-                        <div className="text-xs text-muted-foreground">
-                          {result.sourceCredibility.summary}
-                        </div>
-                      </div>
-
-                      {/* Blockchain Verification */}
-                      <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg">
-                        <span className="text-sm font-medium flex items-center">
-                          <Shield className="w-4 h-4 mr-2 text-primary" />
-                          Blockchain Verified
-                        </span>
-                        <div className="flex items-center text-primary">
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          <span className="text-sm font-bold">Verified</span>
-                        </div>
-                      </div>
-
-                      {/* Content Classification */}
-                      <div className="pt-4 border-t">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="font-medium">Content Type:</span>
-                            <Badge variant="outline" className="ml-2">
-                              {result.contentClassification.type}
-                            </Badge>
+                        <TabsContent value="overview" className="space-y-4 mt-6">
+                          {/* Sentiment Analysis */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium flex items-center">
+                                <TrendingUp className="w-4 h-4 mr-2 text-blue-600" />
+                                Sentiment Analysis
+                              </span>
+                              <span className="text-sm font-bold">{result.sentimentAnalysis.score}%</span>
+                            </div>
+                            <Progress value={result.sentimentAnalysis.score} className="h-2" />
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline">
+                                {result.sentimentAnalysis.label}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {Math.round(result.sentimentAnalysis.confidence * 100)}% confidence
+                              </span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="font-medium">Language:</span>
-                            <span className="ml-2">{result.contentClassification.language}</span>
+
+                          {/* Fact Check Score */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium flex items-center">
+                                <CheckCircle className="w-4 h-4 mr-2 text-primary" />
+                                Fact Check Score
+                              </span>
+                              <span className="text-sm font-bold text-primary">{result.factCheck.score}%</span>
+                            </div>
+                            <Progress value={result.factCheck.score} className="h-2" />
+                            <div className="text-xs text-muted-foreground">
+                              {result.factCheck.summary}
+                            </div>
                           </div>
-                        </div>
-                      </div>
+
+                          {/* Source Credibility */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium flex items-center">
+                                <Link className="w-4 h-4 mr-2 text-green-600" />
+                                Source Credibility
+                              </span>
+                              <span className="text-sm font-bold text-green-600">{result.sourceCredibility.score}%</span>
+                            </div>
+                            <Progress value={result.sourceCredibility.score} className="h-2" />
+                            <div className="text-xs text-muted-foreground">
+                              {result.sourceCredibility.summary}
+                            </div>
+                          </div>
+
+                          {/* Blockchain Verification */}
+                          <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg">
+                            <span className="text-sm font-medium flex items-center">
+                              <Shield className="w-4 h-4 mr-2 text-primary" />
+                              Blockchain Verified
+                            </span>
+                            <div className="flex items-center text-primary">
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              <span className="text-sm font-bold">Verified</span>
+                            </div>
+                          </div>
+
+                          {/* Content Classification */}
+                          <div className="pt-4 border-t">
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="font-medium">Content Type:</span>
+                                <Badge variant="outline" className="ml-2">
+                                  {result.contentClassification.type}
+                                </Badge>
+                              </div>
+                              <div>
+                                <span className="font-medium">Language:</span>
+                                <span className="ml-2">{result.contentClassification.language}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </TabsContent>
+
+                        <TabsContent value="sentiment" className="space-y-4 mt-6">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="flex items-center">
+                                <TrendingUp className="w-5 h-5 mr-2" />
+                                Sentiment Analysis
+                              </CardTitle>
+                              <CardDescription>Analysis of emotional tone and sentiment in the content</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium">Sentiment Score</span>
+                                  <Badge variant={result.sentimentAnalysis.score >= 70 ? "default" : result.sentimentAnalysis.score >= 40 ? "secondary" : "destructive"}>
+                                    {result.sentimentAnalysis.score}%
+                                  </Badge>
+                                </div>
+                                <Progress value={result.sentimentAnalysis.score} className="h-3" />
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                  <div>
+                                    <span className="font-medium">Label:</span>
+                                    <span className="ml-2 capitalize">{result.sentimentAnalysis.label}</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Confidence:</span>
+                                    <span className="ml-2">{Math.round(result.sentimentAnalysis.confidence * 100)}%</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </TabsContent>
+
+                        <TabsContent value="factcheck" className="space-y-4 mt-6">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="flex items-center">
+                                <CheckCircle className="w-5 h-5 mr-2" />
+                                Fact Check Analysis
+                              </CardTitle>
+                              <CardDescription>Verification of factual claims in the content</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium">Fact Check Score</span>
+                                  <Badge variant={result.factCheck.score >= 80 ? "default" : result.factCheck.score >= 60 ? "secondary" : "destructive"}>
+                                    {result.factCheck.score}%
+                                  </Badge>
+                                </div>
+                                <Progress value={result.factCheck.score} className="h-3" />
+                                
+                                <div className="space-y-3">
+                                  <h4 className="font-medium">Claims Analysis</h4>
+                                  {result.factCheck.claims.map((claim, index) => (
+                                    <div key={index} className="p-3 bg-muted rounded-lg">
+                                      <div className="flex justify-between items-start mb-2">
+                                        <p className="text-sm font-medium">{claim.text}</p>
+                                        <Badge variant={claim.verdict === 'TRUE' ? "default" : claim.verdict === 'PARTIALLY_TRUE' ? "secondary" : "destructive"}>
+                                          {claim.verdict}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground">{claim.explanation}</p>
+                                      <div className="mt-2 text-xs">
+                                        <span className="font-medium">Sources:</span> {claim.sources.join(', ')}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                                
+                                <div className="p-3 bg-muted rounded-lg">
+                                  <p className="text-sm">{result.factCheck.summary}</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </TabsContent>
+
+                        <TabsContent value="sources" className="space-y-4 mt-6">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>Source Credibility</CardTitle>
+                              <CardDescription>Analysis of content sources and their reliability</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium">Overall Credibility Score</span>
+                                  <Badge variant={result.sourceCredibility.score >= 80 ? "default" : result.sourceCredibility.score >= 60 ? "secondary" : "destructive"}>
+                                    {result.sourceCredibility.score}%
+                                  </Badge>
+                                </div>
+                                
+                                <div className="space-y-3">
+                                  <h4 className="font-medium">Domain Analysis</h4>
+                                  {result.sourceCredibility.domains.map((domain, index) => (
+                                    <div key={index} className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                                      <div>
+                                        <div className="font-medium">{domain.domain}</div>
+                                        <div className="text-sm text-muted-foreground capitalize">{domain.type} source</div>
+                                      </div>
+                                      <Badge variant={domain.credibility >= 80 ? "default" : domain.credibility >= 60 ? "secondary" : "destructive"}>
+                                        {domain.credibility}%
+                                      </Badge>
+                                    </div>
+                                  ))}
+                                </div>
+                                
+                                <div className="p-3 bg-muted rounded-lg">
+                                  <p className="text-sm">{result.sourceCredibility.summary}</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </TabsContent>
+
+                        <TabsContent value="verification" className="space-y-4 mt-6">
+                          {result.sourceVerification ? (
+                            <SourceVerificationResults verification={result.sourceVerification} />
+                          ) : (
+                            <Card>
+                              <CardHeader>
+                                <CardTitle className="flex items-center">
+                                  <Search className="w-5 h-5 mr-2" />
+                                  Source Verification
+                                </CardTitle>
+                                <CardDescription>Detailed source-based fact verification analysis</CardDescription>
+                              </CardHeader>
+                              <CardContent>
+                                <p className="text-muted-foreground">Source verification data not available.</p>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </TabsContent>
+                      </Tabs>
                     </CardContent>
                   </Card>
                 </>
