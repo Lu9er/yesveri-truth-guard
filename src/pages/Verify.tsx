@@ -190,13 +190,11 @@ export default function Verify() {
                       <CardTitle>Detailed Analysis</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <Tabs defaultValue="overview" className="w-full">
-                        <TabsList className="grid w-full grid-cols-5">
+                       <Tabs defaultValue="overview" className="w-full">
+                        <TabsList className="grid w-full grid-cols-3">
                           <TabsTrigger value="overview">Overview</TabsTrigger>
-                          <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
-                          <TabsTrigger value="factcheck">Fact Check</TabsTrigger>
+                          <TabsTrigger value="analysis">Analysis</TabsTrigger>
                           <TabsTrigger value="sources">Sources</TabsTrigger>
-                          <TabsTrigger value="verification">Source Verification</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="overview" className="space-y-4 mt-6">
@@ -279,7 +277,8 @@ export default function Verify() {
                           </div>
                         </TabsContent>
 
-                        <TabsContent value="sentiment" className="space-y-4 mt-6">
+                        <TabsContent value="analysis" className="space-y-6 mt-6">
+                          {/* Sentiment Analysis */}
                           <Card>
                             <CardHeader>
                               <CardTitle className="flex items-center">
@@ -310,9 +309,8 @@ export default function Verify() {
                               </div>
                             </CardContent>
                           </Card>
-                        </TabsContent>
 
-                        <TabsContent value="factcheck" className="space-y-4 mt-6">
+                          {/* Fact Check Analysis */}
                           <Card>
                             <CardHeader>
                               <CardTitle className="flex items-center">
@@ -357,7 +355,8 @@ export default function Verify() {
                           </Card>
                         </TabsContent>
 
-                        <TabsContent value="sources" className="space-y-4 mt-6">
+                        <TabsContent value="sources" className="space-y-6 mt-6">
+                          {/* Source Credibility */}
                           <Card>
                             <CardHeader>
                               <CardTitle>Source Credibility</CardTitle>
@@ -393,9 +392,8 @@ export default function Verify() {
                               </div>
                             </CardContent>
                           </Card>
-                        </TabsContent>
 
-                        <TabsContent value="verification" className="space-y-4 mt-6">
+                          {/* Source Verification */}
                           {result.sourceVerification ? (
                             <SourceVerificationResults verification={result.sourceVerification} />
                           ) : (
