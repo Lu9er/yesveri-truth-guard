@@ -113,6 +113,7 @@ export class VerificationEngine {
   private sourceVerificationEngine: SourceVerificationEngine;
   private googleFactCheckApiKey = 'AIzaSyAWKPf61om8_O7H-io2xYB6KmSHx9S1kPg';
   private perspectiveApiKey = 'AIzaSyAmATLIbsDPH-HCxE4ifSJoyMv6vTadITA';
+  private openaiApiKey = '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';
 
   constructor() {
     this.sourceVerificationEngine = new SourceVerificationEngine();
@@ -184,10 +185,36 @@ export class VerificationEngine {
 
   private async preprocessContent(input: VerificationInput): Promise<string> {
     if (input.contentType === 'url') {
-      // Mock URL content extraction
-      return `Extracted content from ${input.content}: Lorem ipsum dolor sit amet, consectetur adipiscing elit.`;
+      return await this.extractContentFromUrl(input.content);
     }
     return input.content;
+  }
+
+  private async extractContentFromUrl(url: string): Promise<string> {
+    try {
+      // Note: Puppeteer cannot run in browser environment
+      // This would need to be implemented as a backend service or Supabase Edge Function
+      
+      // Fallback: Use a web scraping service API or extract basic content
+      const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch URL content');
+      }
+      
+      const data = await response.json();
+      const content = data.contents;
+      
+      // Basic text extraction (remove HTML tags)
+      const textContent = content.replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, 3000); // Limit for token optimization
+      
+      return textContent || `Content extracted from ${url}`;
+    } catch (error) {
+      console.error('URL extraction error:', error);
+      return `Failed to extract content from ${url}. Please provide the text directly.`;
+    }
   }
 
   private async analyzeSentiment(content: string): Promise<SentimentResult> {
@@ -374,11 +401,84 @@ export class VerificationEngine {
   }
 
   private async classifyContent(content: string): Promise<ContentClassification> {
-    const types = ['factual', 'opinion', 'mixed'] as const;
-    return {
-      ...MOCK_RESPONSES.contentClassification,
-      type: types[Math.floor(Math.random() * types.length)]
-    };
+    try {
+      const limitedContent = content.substring(0, 3000); // Token optimization
+      
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a content analyzer. Classify the given text and return a JSON response with: type (factual/opinion/mixed), confidence (0-100), readability (0-100), and language (ISO code).'
+            },
+            {
+              role: 'user',
+              content: `Analyze this content: ${limitedContent}`
+            }
+          ],
+          max_tokens: 200,
+          temperature: 0.3
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const aiResponse = data.choices[0]?.message?.content;
+      
+      if (aiResponse) {
+        try {
+          const parsed = JSON.parse(aiResponse);
+          return {
+            type: parsed.type || 'mixed',
+            confidence: parsed.confidence || 70,
+            readability: parsed.readability || 75,
+            language: parsed.language || 'en'
+          };
+        } catch {
+          // If JSON parsing fails, extract values from text response
+          const typeMatch = aiResponse.match(/type.*?["|'](factual|opinion|mixed)["|']/i);
+          const confidenceMatch = aiResponse.match(/confidence.*?(\d+)/i);
+          
+          return {
+            type: (typeMatch?.[1] as 'factual' | 'opinion' | 'mixed') || 'mixed',
+            confidence: confidenceMatch ? parseInt(confidenceMatch[1]) : 70,
+            readability: 75,
+            language: 'en'
+          };
+        }
+      }
+      
+      throw new Error('No response from OpenAI');
+    } catch (error) {
+      console.error('Content classification error:', error);
+      // Fallback to rule-based classification
+      const factualKeywords = ['according to', 'study shows', 'research indicates', 'data reveals'];
+      const opinionKeywords = ['i think', 'in my opinion', 'believe', 'feel that'];
+      
+      const lowerContent = content.toLowerCase();
+      const factualCount = factualKeywords.filter(word => lowerContent.includes(word)).length;
+      const opinionCount = opinionKeywords.filter(word => lowerContent.includes(word)).length;
+      
+      let type: 'factual' | 'opinion' | 'mixed' = 'mixed';
+      if (factualCount > opinionCount) type = 'factual';
+      else if (opinionCount > factualCount) type = 'opinion';
+      
+      return {
+        type,
+        confidence: 60,
+        readability: 70,
+        language: 'en'
+      };
+    }
   }
 
   private async performSourceVerification(input: VerificationInput): Promise<SourceVerificationResult> {
