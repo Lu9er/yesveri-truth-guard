@@ -126,16 +126,6 @@ Yesveri integrates with several external APIs:
 - **20-39%**: Low trustworthiness, significant concerns
 - **0-19%**: Highly unreliable or false content
 
-## 🚀 Deployment
-
-### Lovable Platform
-1. Open your [Lovable Project](https://lovable.dev/projects/5b8bdfd1-c7ed-4eb8-a4ac-e5d6f113a3ae)
-2. Click "Share" → "Publish"
-3. Your app will be deployed with a Lovable subdomain
-
-### Custom Domain
-Navigate to Project → Settings → Domains in Lovable to connect your custom domain.
-
 ### Self-Hosting
 The project generates standard web application code that can be deployed on any hosting platform:
 - Vercel
@@ -143,24 +133,6 @@ The project generates standard web application code that can be deployed on any 
 - AWS S3 + CloudFront
 - GitHub Pages
 - Any static hosting service
-
-## 🤝 Contributing
-
-This project is built with Lovable's AI-powered development platform. You can contribute by:
-
-1. **Using Lovable**: Visit the [project link](https://lovable.dev/projects/5b8bdfd1-c7ed-4eb8-a4ac-e5d6f113a3ae) and make changes via AI prompts
-2. **Local Development**: Clone the repo, make changes, and push to the connected GitHub repository
-3. **GitHub Codespaces**: Use the integrated development environment
-
-## 📝 License
-
-This project is developed using Lovable platform. Please refer to your Lovable subscription terms for usage rights.
-
-## 🆘 Support
-
-- **Lovable Documentation**: [https://docs.lovable.dev/](https://docs.lovable.dev/)
-- **Lovable Discord**: [Community Support](https://discord.com/channels/1119885301872070706/1280461670979993613)
-- **Project URL**: [https://lovable.dev/projects/5b8bdfd1-c7ed-4eb8-a4ac-e5d6f113a3ae](https://lovable.dev/projects/5b8bdfd1-c7ed-4eb8-a4ac-e5d6f113a3ae)
 
 ## 🔮 Roadmap
 
